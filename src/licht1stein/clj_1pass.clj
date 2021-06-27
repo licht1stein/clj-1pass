@@ -2,34 +2,102 @@
   (:require [clj-http.client :as client]
             [cheshire.core :as json]))
 
-(defonce *op (atom {:init false}))
+(defonce ^:private *config (atom nil))
 
-(defn initialize
-  "Initializes the *op atom. Specify the Connect API url and token.
-  This will allow you to use the helper functions arities without providing
-  connect-url and token args.
+(defrecord Config [connect-url token])
 
-  You can use the library without initializing the token, using the longer
-  arities. This allows you to decide how to store and provide the token
-  to the library."
+(defn store-config
+  "Stores an instance of Config in an atom to allow usage of request functions without
+  passing the config arg (shorter arities)."
+  [config]
+  (reset! *config config))
+
+(defn make-config
+  "Creates a new instance of Config map"
   [connect-url token]
-  (swap! *op merge {:token token :connect-url connect-url :init true})
+  (->Config connect-url token))
+
+(defn make-and-store-config
+  "Creates a new Config and stores it in an atom."
+  [connect-url token]
+  (store-config (make-config connect-url token))
   true)
 
-(defn auth-header
+(defn- auth-header
   "Prepares an authorization header map for 1Password Connect REST API."
   [token]
   {:headers {"Authorization" (str "Bearer " token)}})
 
-(defn get
-  "Makes a get request to 1Password Connect endpoint"
-  ([endpoint]
-   (when-not (:init @*op)
-     (throw (ex-info "clj-1pass not initialized. Run clj-1pass/initialize first" {})))
-   (get (:connect-url @*op) (:token @*op) endpoint))
-  ([endpoint connect-url token]
-   (let [resp (client/get (str connect-url endpoint) (auth-header token) {:as :clojure})
-         edn-body (json/parse-string (:body resp) true)]
-     (assoc resp :body edn-body)
-     )))
+(defn- body->edn
+  "Converts response body to Clojure map"
+  [resp]
+  (assoc resp :body (json/parse-string (:body resp) true)))
 
+(defn request
+  "Makes a request to 1Password Connect API.
+  "
+  [{:keys [method connect-url token endpoint]}]
+  {:pre [(not-empty token)
+         (not-empty connect-url)]}
+  (-> (client/request (-> {:url (str connect-url endpoint)
+                           :method method}
+                          (merge (auth-header token))))
+      body->edn))
+
+(defn get
+  "Makes a GET request to the 1Password Connect API
+  opts must be a map that include's all the fields from Config record."
+  [opts endpoint]
+  (request (merge opts {:endpoint endpoint :method :get})))
+
+(defn get-body
+  "Uses get to make a request and returns only the value of :body"
+  [opts endpoint]
+  (:body (get opts endpoint)))
+
+(defn post
+  "Makes a POST request to the 1Password Connect API"
+  [endpoint opts body]
+  (request (merge opts {:endpoint endpoint :method :post :body body})))
+
+(defn- deref-config []
+  (when (empty? @*config)
+    (throw (ex-info "To use the function without passing config argument you must first store it using store-config" {})))
+  @*config)
+
+(defn get-activity
+  "List API activity. Returns a list of maps with all API activity.
+
+  GET /v1/activity"
+  ([]
+   (get-activity (deref-config)))
+  ([config]
+   (get-body config "/activity")))
+
+(defn list-vaults
+  "List vaults GET /v1/vaults"
+  ([]
+   (list-vaults (deref-config)))
+  ([config]
+   (get-body config "/vaults")))
+
+(defn  get-vault-details
+  "GET /v1/vaults/{vaultUUID}"
+  ([vault-id]
+   (get-vault-details (deref-config) vault-id))
+  ([config vault-id]
+   (get-body config (str "/vaults/" vault-id))))
+
+(defn list-vault-items
+  "GET /v1/vaults/{vaultUUID}/items"
+  ([vault-id]
+   (list-vault-items (deref-config) vault-id))
+  ([config vault-id]
+   (get-body config (str "/vaults/" vault-id "/items"))))
+
+(defn get-item-details
+  "GET /v1/vaults/{vaultUUID}/items/{itemUUID}"
+  ([vault-id item-id]
+   (get-item-details (deref-config) vault-id item-id))
+  ([config vault-id item-id]
+   (get-body config (str "/vaults/" vault-id "/items/" item-id))))
