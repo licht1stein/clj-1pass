@@ -1,6 +1,7 @@
 (ns licht1stein.clj-1pass
   (:require [clj-http.client :as client]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [clojure.string :as str]))
 
 (defonce ^:private *config (atom nil))
 
@@ -44,7 +45,7 @@
                           (merge (auth-header token))))
       body->edn))
 
-(defn get
+(defn op-get
   "Makes a GET request to the 1Password Connect API
   opts must be a map that include's all the fields from Config record."
   [opts endpoint]
@@ -53,7 +54,7 @@
 (defn get-body
   "Uses get to make a request and returns only the value of :body"
   [opts endpoint]
-  (:body (get opts endpoint)))
+  (:body (op-get opts endpoint)))
 
 (defn post
   "Makes a POST request to the 1Password Connect API"
@@ -75,7 +76,7 @@
    (get-body config "/activity")))
 
 (defn list-vaults
-  "List vaults GET /v1/vaults"
+  "List all vaults GET /v1/vaults"
   ([]
    (list-vaults (deref-config)))
   ([config]
@@ -97,7 +98,35 @@
 
 (defn get-item-details
   "GET /v1/vaults/{vaultUUID}/items/{itemUUID}"
-  ([vault-id item-id]
-   (get-item-details (deref-config) vault-id item-id))
-  ([config vault-id item-id]
+  ([item]
+   (get-item-details (deref-config) item))
+  ([config {:keys [vault-id item-id]}]
    (get-body config (str "/vaults/" vault-id "/items/" item-id))))
+
+
+(defn shorten-item [i]
+  {:title (:title i)
+     :vault-id (get-in i [:vault :id])
+     :item-id (:id i)})
+
+(defn short-items
+  "Takes list of items and returns only the essentials"
+  [items]
+  (map shorten-item items))
+
+(defn all-items
+  "Gets all items from all available vaults"
+  ([]
+   (all-items (deref-config)))
+  ([config]
+   (let [vaults (map :id (list-vaults config))]
+     (-> (map #(list-vault-items config %) vaults)
+         flatten))))
+
+(defn find-by-title
+  "Searches all items for occurrence of item-title in title. Ignores case."
+  ([item-title]
+   (find-by-title (deref-config) item-title))
+  ([config item-title]
+   (->> (all-items config)
+        (filter #(str/includes? (str/lower-case (:title %)) (str/lower-case item-title))))))
