@@ -1,6 +1,6 @@
 #+TITLE: Clojure wrapper for 1Password Connect REST API
 
-[[file:img/1Password-logo.png][1Password Logo]]
+*This is still in pre-alpha. Use at your own risk*
 
 * Prepare the environment
 In order to use the client you first need to start the 1Password Connect docker image as your API server:
