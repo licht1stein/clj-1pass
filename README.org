@@ -3,7 +3,7 @@
 [[file:img/1Password-logo.png][1Password Logo]]
 
 * Prepare the environment
-** Start 1Password Connect Docker Server
+In order to use the client you first need to start the 1Password Connect docker image as your API server:
 
 1.  Download example ~docker-compose.yaml~ from [[https://i.1password.com/media/1password-connect/docker-compose.yaml][1password's website]]. At the moment of writing it looked like this (v3.4)
 
