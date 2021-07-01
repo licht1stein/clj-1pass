@@ -1,4 +1,4 @@
-#+TITLE: 1Password Connect and clj-1pass tutorial
+#+TITLE: Clojure wrapper for 1Password Connect REST API
 
 * Prepare the environment
 ** Start 1Password Connect Docker Server
