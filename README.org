@@ -1,7 +1,7 @@
 #+TITLE: Clojure wrapper for 1Password Connect REST API
 
-[[./img/1Password-logo.png
-]]
+[[file:img/1Password-logo.png][1Password Logo]]
+
 * Prepare the environment
 ** Start 1Password Connect Docker Server
 
