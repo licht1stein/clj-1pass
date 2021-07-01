@@ -2,10 +2,6 @@
   (:require [clj-http.client :as client]
             [cheshire.core :as json]
             [clojure.string :as str]))
-(ns licht1stein.clj-1pass
-  (:require [clj-http.client :as client]
-            [cheshire.core :as json]
-            [clojure.string :as str]))
 
 (defonce ^:private *config (atom nil))
 
