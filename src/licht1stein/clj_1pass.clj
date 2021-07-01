@@ -13,7 +13,6 @@
   [config]
   (reset! *config config))
 
-
 (defn make-config
   "Creates a new instance of Config map"
   [connect-url token]
@@ -107,8 +106,8 @@
 
 (defn shorten-item [i]
   {:title (:title i)
-     :vault-id (get-in i [:vault :id])
-     :item-id (:id i)})
+   :vault-id (get-in i [:vault :id])
+   :item-id (:id i)})
 
 (defn short-items
   "Takes list of items and returns only the essentials"
